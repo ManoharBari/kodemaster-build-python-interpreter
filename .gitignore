@@ -1,0 +1,15 @@
+# Build output
+your_program
+*.o
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test files
+test.py
+*.pyc
