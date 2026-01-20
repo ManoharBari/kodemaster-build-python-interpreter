@@ -1,6 +1,10 @@
 #include "lexer.hpp"
 #include <stdexcept>
 
+static bool isDigit(char c) {
+    return c >= '0' && c <= '9';
+}
+
 Lexer::Lexer(const std::string &source) : source(source)
 {
     keywords["True"] = TokenType::True;
@@ -127,8 +131,10 @@ void Lexer::scanToken()
         break;
 
     default:
-        break;
+    if (isDigit(c)) {
+        handleNumber();
     }
+    break;
 }
 
 char Lexer::advance() { return source[current++]; }
@@ -152,4 +158,17 @@ void Lexer::addToken(TokenType type)
 void Lexer::addToken(TokenType type, const std::string &lexeme)
 {
     tokens.push_back(Token(type, lexeme, line));
+}
+
+void Lexer::handleNumber() {
+    while (isDigit(peek())) advance();
+    
+    // Look for decimal part
+    if (peek() == '.' && isDigit(peekNext())) {
+        advance(); // consume '.'
+        while (isDigit(peek())) advance();
+        addToken(TokenType::Float);
+    } else {
+        addToken(TokenType::Int);
+    }
 }
