@@ -29,6 +29,11 @@ Lexer::Lexer(const std::string &source) : source(source)
     indentLevels.push(0);
 }
 
+char Lexer::advance() { return source[current++]; }
+bool Lexer::isAtEnd() const { return current >= source.length(); }
+char Lexer::peek() const { return isAtEnd() ? '\0' : source[current]; }
+char Lexer::peekNext() const { return (current + 1 >= source.length()) ? '\0' : source[current + 1]; }
+
 std::vector<Token> Lexer::scanTokens()
 {
     while (!isAtEnd())
@@ -158,11 +163,6 @@ void Lexer::scanToken()
         break;
     }
 }
-
-char Lexer::advance() { return source[current++]; }
-bool Lexer::isAtEnd() const { return current >= source.length(); }
-char Lexer::peek() const { return isAtEnd() ? '\0' : source[current]; }
-char Lexer::peekNext() const { return (current + 1 >= source.length()) ? '\0' : source[current + 1]; }
 
 bool Lexer::match(char expected)
 {
