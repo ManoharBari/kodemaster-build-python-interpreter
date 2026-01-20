@@ -1,7 +1,8 @@
 #include "lexer.hpp"
 #include <stdexcept>
 
-Lexer::Lexer(const std::string& source) : source(source) {
+Lexer::Lexer(const std::string &source) : source(source)
+{
     keywords["True"] = TokenType::True;
     keywords["False"] = TokenType::False;
     keywords["None"] = TokenType::None;
@@ -19,12 +20,14 @@ Lexer::Lexer(const std::string& source) : source(source) {
     keywords["class"] = TokenType::Class;
     keywords["pass"] = TokenType::Pass;
     keywords["print"] = TokenType::Print;
-    
+
     indentLevels.push(0);
 }
 
-std::vector<Token> Lexer::scanTokens() {
-    while (!isAtEnd()) {
+std::vector<Token> Lexer::scanTokens()
+{
+    while (!isAtEnd())
+    {
         start = current;
         scanToken();
     }
@@ -32,9 +35,100 @@ std::vector<Token> Lexer::scanTokens() {
     return tokens;
 }
 
-void Lexer::scanToken() {
+void Lexer::scanToken()
+{
     char c = advance();
-    // Implementation in next step
+
+    switch (c)
+    {
+    case '(':
+        addToken(TokenType::LeftParen);
+        break;
+    case ')':
+        addToken(TokenType::RightParen);
+        break;
+    case ',':
+        addToken(TokenType::Comma);
+        break;
+    case '.':
+        addToken(TokenType::Dot);
+        break;
+    case ':':
+        addToken(TokenType::Colon);
+        break;
+
+    case '+':
+        addToken(TokenType::Plus);
+        break;
+    case '-':
+        addToken(TokenType::Minus);
+        break;
+    case '%':
+        addToken(TokenType::Mod);
+        break;
+
+    case '*':
+        addToken(match('*') ? TokenType::DoubleStar : TokenType::Star);
+        break;
+    case '/':
+        addToken(match('/') ? TokenType::DoubleSlash : TokenType::Slash);
+        break;
+
+    case '=':
+        addToken(match('=') ? TokenType::EqualEqual : TokenType::Equals);
+        break;
+    case '!':
+        if (match('='))
+            addToken(TokenType::BangEqual);
+        break;
+    case '<':
+        if (match('<'))
+            addToken(TokenType::LeftShift);
+        else if (match('='))
+            addToken(TokenType::LessEqual);
+        else
+            addToken(TokenType::Less);
+        break;
+    case '>':
+        if (match('>'))
+            addToken(TokenType::RightShift);
+        else if (match('='))
+            addToken(TokenType::GreaterEqual);
+        else
+            addToken(TokenType::Greater);
+        break;
+
+    case '|':
+        addToken(TokenType::Pipe);
+        break;
+    case '&':
+        addToken(TokenType::Ampersand);
+        break;
+    case '^':
+        addToken(TokenType::Caret);
+        break;
+    case '~':
+        addToken(TokenType::Tilde);
+        break;
+
+    case '#':
+        while (peek() != '\n' && !isAtEnd())
+            advance();
+        break;
+
+    case ' ':
+    case '\t':
+    case '\r':
+        break;
+
+    case '\n':
+        addToken(TokenType::Newline);
+        line++;
+        break;
+
+    default:
+        break;
+    }
 }
 
 char Lexer::advance() { return source[current++]; }
@@ -42,16 +136,20 @@ bool Lexer::isAtEnd() const { return current >= source.length(); }
 char Lexer::peek() const { return isAtEnd() ? '\0' : source[current]; }
 char Lexer::peekNext() const { return (current + 1 >= source.length()) ? '\0' : source[current + 1]; }
 
-bool Lexer::match(char expected) {
-    if (isAtEnd() || source[current] != expected) return false;
+bool Lexer::match(char expected)
+{
+    if (isAtEnd() || source[current] != expected)
+        return false;
     current++;
     return true;
 }
 
-void Lexer::addToken(TokenType type) {
+void Lexer::addToken(TokenType type)
+{
     tokens.push_back(Token(type, source.substr(start, current - start), line));
 }
 
-void Lexer::addToken(TokenType type, const std::string& lexeme) {
+void Lexer::addToken(TokenType type, const std::string &lexeme)
+{
     tokens.push_back(Token(type, lexeme, line));
 }
