@@ -6,7 +6,7 @@ static bool isDigit(char c)
     return c >= '0' && c <= '9';
 }
 
-Lexer::Lexer(const std::string &source) : source(source)
+Lexer::Lexer(const std::string &source) : source(source), current(0), start(0), line(1)
 {
     keywords["True"] = TokenType::True;
     keywords["False"] = TokenType::False;
