@@ -160,8 +160,11 @@ void Lexer::handleNumber()
 }
 
 char Lexer::advance() { return source[current++]; }
+
 bool Lexer::isAtEnd() const { return current >= source.length(); }
+
 char Lexer::peek() const { return isAtEnd() ? '\0' : source[current]; }
+
 char Lexer::peekNext() const { return (current + 1 >= source.length()) ? '\0' : source[current + 1]; }
 
 bool Lexer::match(char expected)
