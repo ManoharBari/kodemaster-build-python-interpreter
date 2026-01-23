@@ -17,6 +17,8 @@ private:
     void handleNumber();
     void handleString(char quoteType);
     void handleIdentifier();
+    void handleIndentation();
+    void handleNewline();
     char advance();
     void addToken(TokenType type);
     void addToken(TokenType type, const std::string &lexeme);

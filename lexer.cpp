@@ -46,6 +46,13 @@ std::vector<Token> Lexer::scanTokens()
         start = current;
         scanToken();
     }
+
+    while (indentLevels.size() > 1)
+    {
+        indentLevels.pop();
+        tokens.push_back(Token(TokenType::Dedent, "", line));
+    }
+
     tokens.push_back(Token(TokenType::EndOfFile, "", line));
     return tokens;
 }
@@ -126,6 +133,53 @@ void Lexer::handleString(char quoteType)
     // Extract content without quotes
     std::string value = source.substr(start + 1, current - start - 2);
     addToken(TokenType::String, value);
+}
+
+void Lexer::handleIndentation()
+{
+    int indent = 0;
+
+    while (peek() == ' ' || peek() == '\t')
+    {
+        indent += (peek() == '\t') ? 4 : 1;
+        advance();
+    }
+
+    if (peek() == '#' || peek() == '\n')
+        return;
+
+    int currentIndent = indentLevels.top();
+
+    if (indent > currentIndent)
+    {
+        indentLevels.push(indent);
+        addToken(TokenType::Indent, "");
+    }
+    else if (indent < currentIndent)
+    {
+        while (!indentLevels.empty() && indentLevels.top() > indent)
+        {
+            indentLevels.pop();
+            addToken(TokenType::Dedent, "");
+        }
+    }
+}
+
+void Lexer::handleNewline()
+{
+    addToken(TokenType::Newline);
+    line++;
+
+    while (peek() == '\n')
+    {
+        line++;
+        advance();
+    }
+
+    if (!isAtEnd())
+    {
+        handleIndentation();
+    }
 }
 
 void Lexer::handleIdentifier()
