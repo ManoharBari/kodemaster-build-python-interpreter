@@ -21,6 +21,7 @@ private:
     AstNode *parseExpr();
     AstNode *parseAssign();
     AstNode *parseOr();
+    AstNode *parsePower();
     AstNode *parseAnd();
     AstNode *parseComparison();
     AstNode *parseTerm();

@@ -89,22 +89,53 @@ AstNode *Parser::parseExpr()
 
 AstNode *Parser::parseAssign()
 {
-    return parseOr();
+    AstNode *expr = parseOr();
+    if (match(TokenType::Equals))
+    {
+        AstNode *value = parseAssign(); 
+        if (expr->type != AstNodeType::Name)
+        {
+            throw std::runtime_error("Invalid assignment target");
+        }
+        NameNode *nameNode = static_cast<NameNode *>(expr);
+        return new AssignNode(nameNode->name, value);
+    }
+    return expr;
 }
 
 AstNode *Parser::parseOr()
 {
-    return parseAnd();
+    AstNode *left = parseAnd();
+    while (match(TokenType::Or))
+    {
+        Token op = previous();
+        left = new BinaryOpNode(left, op, parseAnd());
+    }
+    return left;
 }
 
 AstNode *Parser::parseAnd()
 {
-    return parseComparison();
+    AstNode *left = parseComparison();
+    while (match(TokenType::And))
+    {
+        Token op = previous();
+        left = new BinaryOpNode(left, op, parseComparison());
+    }
+    return left;
 }
 
 AstNode *Parser::parseComparison()
 {
-    return parseTerm();
+    AstNode *left = parseTerm();
+    while (match({TokenType::EqualEqual, TokenType::BangEqual,
+                  TokenType::Less, TokenType::LessEqual,
+                  TokenType::Greater, TokenType::GreaterEqual}))
+    {
+        Token op = previous();
+        left = new BinaryOpNode(left, op, parseTerm());
+    }
+    return left;
 }
 
 AstNode *Parser::parseTerm()
@@ -123,15 +154,26 @@ AstNode *Parser::parseTerm()
 
 AstNode *Parser::parseFactor()
 {
-    AstNode *left = parseUnary();
+    AstNode *left = parsePower();
 
     while (match({TokenType::Star, TokenType::Slash, TokenType::DoubleSlash, TokenType::Mod}))
     {
         Token op = previous();
-        AstNode *right = parseUnary();
+        AstNode *right = parsePower();
         left = new BinaryOpNode(left, op, right);
     }
 
+    return left;
+}
+
+AstNode *Parser::parsePower()
+{
+    AstNode *left = parseUnary();
+    if (match(TokenType::DoubleStar))
+    {
+        Token op = previous();
+        return new BinaryOpNode(left, op, parsePower()); 
+    }
     return left;
 }
 
