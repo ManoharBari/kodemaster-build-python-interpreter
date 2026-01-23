@@ -40,6 +40,63 @@ std::vector<Token> Lexer::scanTokens()
     return tokens;
 }
 
+char Lexer::advance()
+{
+    return source[current++];
+}
+
+bool Lexer::isAtEnd() const
+{
+    return current >= source.length();
+}
+
+char Lexer::peek() const
+{
+    return isAtEnd() ? '\0' : source[current];
+}
+
+char Lexer::peekNext() const
+{
+    return (current + 1 >= source.length()) ? '\0' : source[current + 1];
+}
+
+bool Lexer::match(char expected)
+{
+    if (isAtEnd() || source[current] != expected)
+        return false;
+    current++;
+    return true;
+}
+
+void Lexer::addToken(TokenType type)
+{
+    tokens.push_back(Token(type, source.substr(start, current - start), line));
+}
+
+void Lexer::addToken(TokenType type, const std::string &lexeme)
+{
+    tokens.push_back(Token(type, lexeme, line));
+}
+
+void Lexer::handleNumber()
+{
+    while (isDigit(peek()))
+        advance();
+
+    // Look for decimal part
+    if (peek() == '.' && isDigit(peekNext()))
+    {
+        advance(); // consume '.'
+        while (isDigit(peek()))
+            advance();
+        addToken(TokenType::Float);
+    }
+    else
+    {
+        addToken(TokenType::Int);
+    }
+}
+
 void Lexer::scanToken()
 {
     char c = advance();
@@ -138,61 +195,4 @@ void Lexer::scanToken()
         }
         break;
     }
-}
-
-void Lexer::handleNumber()
-{
-    while (isDigit(peek()))
-        advance();
-
-    // Look for decimal part
-    if (peek() == '.' && isDigit(peekNext()))
-    {
-        advance(); // consume '.'
-        while (isDigit(peek()))
-            advance();
-        addToken(TokenType::Float);
-    }
-    else
-    {
-        addToken(TokenType::Int);
-    }
-}
-
-char Lexer::advance() 
-{ 
-    return source[current++]; 
-}
-
-bool Lexer::isAtEnd() const 
-{ 
-    return current >= source.length(); 
-}
-
-char Lexer::peek() const 
-{ 
-    return isAtEnd() ? '\0' : source[current]; 
-}
-
-char Lexer::peekNext() const 
-{ 
-    return (current + 1 >= source.length()) ? '\0' : source[current + 1]; 
-}
-
-bool Lexer::match(char expected)
-{
-    if (isAtEnd() || source[current] != expected)
-        return false;
-    current++;
-    return true;
-}
-
-void Lexer::addToken(TokenType type)
-{
-    tokens.push_back(Token(type, source.substr(start, current - start), line));
-}
-
-void Lexer::addToken(TokenType type, const std::string &lexeme)
-{
-    tokens.push_back(Token(type, lexeme, line));
 }
