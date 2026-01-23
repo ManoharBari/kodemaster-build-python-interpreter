@@ -253,6 +253,10 @@ void Lexer::scanToken()
         {
             handleIdentifier();
         }
+        else
+        {
+            throw std::runtime_error("Unexpected character at line " + std::to_string(line));
+        }
         break;
     }
 }
