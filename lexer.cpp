@@ -97,6 +97,27 @@ void Lexer::handleNumber()
     }
 }
 
+void Lexer::handleString(char quoteType)
+{
+    while (peek() != quoteType && !isAtEnd())
+    {
+        if (peek() == '\n')
+            line++;
+        advance();
+    }
+
+    if (isAtEnd())
+    {
+        throw std::runtime_error("Unterminated string at line " + std::to_string(line));
+    }
+
+    advance(); // closing quote
+
+    // Extract content without quotes
+    std::string value = source.substr(start + 1, current - start - 2);
+    addToken(TokenType::String, value);
+}
+
 void Lexer::scanToken()
 {
     char c = advance();
@@ -186,6 +207,13 @@ void Lexer::scanToken()
     case '\n':
         addToken(TokenType::Newline);
         line++;
+        break;
+
+    case '"':
+        handleString('"');
+        break;
+    case '\'':
+        handleString('\'');
         break;
 
     default:

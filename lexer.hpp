@@ -15,6 +15,7 @@ public:
 private:
     void scanToken();
     void handleNumber();
+    void handleString(char quoteType);
     char advance();
     void addToken(TokenType type);
     void addToken(TokenType type, const std::string &lexeme);
