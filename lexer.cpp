@@ -6,6 +6,16 @@ static bool isDigit(char c)
     return c >= '0' && c <= '9';
 }
 
+static bool isAlpha(char c)
+{
+    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
+}
+
+static bool isAlphaNumeric(char c)
+{
+    return isAlpha(c) || isDigit(c);
+}
+
 Lexer::Lexer(const std::string &source) : source(source), current(0), start(0), line(1)
 {
     keywords["True"] = TokenType::True;
@@ -118,6 +128,24 @@ void Lexer::handleString(char quoteType)
     addToken(TokenType::String, value);
 }
 
+void Lexer::handleIdentifier()
+{
+    while (isAlphaNumeric(peek()))
+        advance();
+
+    std::string text = source.substr(start, current - start);
+
+    auto it = keywords.find(text);
+    if (it != keywords.end())
+    {
+        addToken(it->second);
+    }
+    else
+    {
+        addToken(TokenType::Name);
+    }
+}
+
 void Lexer::scanToken()
 {
     char c = advance();
@@ -220,6 +248,10 @@ void Lexer::scanToken()
         if (isDigit(c))
         {
             handleNumber();
+        }
+        else if (isAlpha(c))
+        {
+            handleIdentifier();
         }
         break;
     }
