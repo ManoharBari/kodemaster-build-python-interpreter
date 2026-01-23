@@ -1,0 +1,173 @@
+#include "parser.hpp"
+#include <stdexcept>
+
+Parser::Parser(const std::vector<Token> &tokens) : tokens(tokens) {}
+
+ProgramNode *Parser::parse() { return parseProgram(); }
+
+bool Parser::isAtEnd() const { return peek().type == TokenType::EndOfFile; }
+
+Token Parser::peek() const { return tokens[current]; }
+
+Token Parser::previous() const { return tokens[current - 1]; }
+
+Token Parser::advance()
+{
+    if (!isAtEnd())
+        current++;
+    return previous();
+}
+
+bool Parser::match(TokenType type)
+{
+    if (peek().type == type)
+    {
+        advance();
+        return true;
+    }
+    return false;
+}
+
+bool Parser::match(std::initializer_list<TokenType> types)
+{
+    for (TokenType type : types)
+    {
+        if (peek().type == type)
+        {
+            advance();
+            return true;
+        }
+    }
+    return false;
+}
+
+Token Parser::consume(TokenType type)
+{
+    if (peek().type == type)
+        return advance();
+    throw std::runtime_error("Expected token type " + std::to_string(static_cast<int>(type)));
+}
+
+ProgramNode *Parser::parseProgram()
+{
+    std::vector<AstNode *> statements = parseStmtList();
+    return new ProgramNode(statements);
+}
+
+std::vector<AstNode *> Parser::parseStmtList()
+{
+    std::vector<AstNode *> statements;
+    while (!isAtEnd())
+    {
+        statements.push_back(parseStmt());
+    }
+    return statements;
+}
+
+AstNode *Parser::parseStmt()
+{
+    return parseSimpleStmt();
+}
+
+AstNode *Parser::parseSimpleStmt()
+{
+    if (match(TokenType::Print))
+        return parsePrintStmt();
+    return parseExpr();
+}
+
+AstNode *Parser::parsePrintStmt()
+{
+    AstNode *expr = parseExpr();
+    return new PrintNode(expr);
+}
+
+AstNode *Parser::parseExpr()
+{
+    return parseAssign();
+}
+
+AstNode *Parser::parseAssign()
+{
+    return parseOr();
+}
+
+AstNode *Parser::parseOr()
+{
+    return parseAnd();
+}
+
+AstNode *Parser::parseAnd()
+{
+    return parseComparison();
+}
+
+AstNode *Parser::parseComparison()
+{
+    return parseTerm();
+}
+
+AstNode *Parser::parseTerm()
+{
+    AstNode *left = parseFactor();
+
+    while (match({TokenType::Plus, TokenType::Minus}))
+    {
+        Token op = previous();
+        AstNode *right = parseFactor();
+        left = new BinaryOpNode(left, op, right);
+    }
+
+    return left;
+}
+
+AstNode *Parser::parseFactor()
+{
+    AstNode *left = parseUnary();
+
+    while (match({TokenType::Star, TokenType::Slash, TokenType::DoubleSlash, TokenType::Mod}))
+    {
+        Token op = previous();
+        AstNode *right = parseUnary();
+        left = new BinaryOpNode(left, op, right);
+    }
+
+    return left;
+}
+
+AstNode *Parser::parseUnary()
+{
+    if (match({TokenType::Minus, TokenType::Not}))
+    {
+        Token op = previous();
+        AstNode *operand = parseUnary();
+        return new UnaryOpNode(op, operand);
+    }
+
+    return parsePrimary();
+}
+
+AstNode *Parser::parsePrimary()
+{
+    if (match(TokenType::Int))
+        return new IntNode(previous());
+    if (match(TokenType::Float))
+        return new FloatNode(previous());
+    if (match(TokenType::String))
+        return new StringNode(previous());
+    if (match(TokenType::True))
+        return new BooleanNode(previous());
+    if (match(TokenType::False))
+        return new BooleanNode(previous());
+    if (match(TokenType::None))
+        return new NullNode();
+    if (match(TokenType::Name))
+        return new NameNode(previous());
+    if (match(TokenType::LeftParen))
+    {
+        AstNode *expr = parseExpr();
+        consume(TokenType::RightParen);
+        return expr;
+    }
+    throw std::runtime_error("Expected expression");
+}
