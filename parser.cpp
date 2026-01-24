@@ -64,11 +64,6 @@ std::vector<AstNode *> Parser::parseStmtList()
     return statements;
 }
 
-AstNode *Parser::parseStmt()
-{
-    return parseSimpleStmt();
-}
-
 AstNode *Parser::parseSimpleStmt()
 {
     if (match(TokenType::Print))
