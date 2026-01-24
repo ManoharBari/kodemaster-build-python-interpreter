@@ -228,3 +228,63 @@ AstNode *Parser::parsePrimary()
     }
     throw std::runtime_error("Expected expression");
 }
+
+AstNode *Parser::parseStmt()
+{
+    if (match(TokenType::If))
+        return parseIfStmt();
+    if (match(TokenType::While))
+        return parseWhileStmt();
+    return parseSimpleStmt();
+}
+
+AstNode *Parser::parseSuite()
+{
+    consume(TokenType::Newline);
+    consume(TokenType::Indent);
+
+    std::vector<AstNode *> statements;
+    while (!match(TokenType::Dedent) && !isAtEnd())
+    {
+        while (match(TokenType::Newline))
+        {
+        }
+        if (peek().type == TokenType::Dedent)
+            break;
+        statements.push_back(parseStmt());
+        match(TokenType::Newline);
+    }
+    return new BlockNode(statements);
+}
+
+AstNode *Parser::parseIfStmt()
+{
+    AstNode *condition = parseExpr();
+    consume(TokenType::Colon);
+    AstNode *thenBranch = parseSuite();
+
+    std::vector<std::pair<AstNode *, AstNode *>> elifBranches;
+    while (match(TokenType::Elif))
+    {
+        AstNode *elifCond = parseExpr();
+        consume(TokenType::Colon);
+        elifBranches.push_back({elifCond, parseSuite()});
+    }
+
+    AstNode *elseBranch = nullptr;
+    if (match(TokenType::Else))
+    {
+        consume(TokenType::Colon);
+        elseBranch = parseSuite();
+    }
+
+    return new IfNode(condition, thenBranch, elifBranches, elseBranch);
+}
+
+AstNode *Parser::parseWhileStmt()
+{
+    AstNode *condition = parseExpr();
+    consume(TokenType::Colon);
+    AstNode *body = parseSuite();
+    return new WhileNode(condition, body);
+}

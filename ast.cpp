@@ -16,3 +16,5 @@ PyObject *PassNode::accept(NodeVisitor *visitor) { return visitor->visitPassNode
 PyObject *BreakNode::accept(NodeVisitor *visitor) { return visitor->visitBreakNode(this); }
 PyObject *ContinueNode::accept(NodeVisitor *visitor) { return visitor->visitContinueNode(this); }
 PyObject *ReturnNode::accept(NodeVisitor *visitor) { return visitor->visitReturnNode(this); }
+PyObject *IfNode::accept(NodeVisitor *visitor) { return visitor->visitIfNode(this); }
+PyObject *WhileNode::accept(NodeVisitor *visitor) { return visitor->visitWhileNode(this); }

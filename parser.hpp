@@ -17,6 +17,9 @@ private:
     AstNode *parseStmt();
     AstNode *parseSimpleStmt();
     AstNode *parsePrintStmt();
+    AstNode *parseIfStmt();
+    AstNode *parseWhileStmt();
+    AstNode *parseSuite();
 
     AstNode *parseExpr();
     AstNode *parseAssign();

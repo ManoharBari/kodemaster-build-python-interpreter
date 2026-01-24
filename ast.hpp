@@ -71,6 +71,32 @@ public:
     AstNode *value;
 };
 
+class IfNode : public AstNode
+{
+public:
+    IfNode(AstNode *condition, AstNode *thenBranch,
+           std::vector<std::pair<AstNode *, AstNode *>> elifBranches,
+           AstNode *elseBranch)
+        : AstNode(AstNodeType::If), condition(condition),
+          thenBranch(thenBranch), elifBranches(elifBranches),
+          elseBranch(elseBranch) {}
+    PyObject *accept(NodeVisitor *visitor) override;
+    AstNode *condition;
+    AstNode *thenBranch;
+    std::vector<std::pair<AstNode *, AstNode *>> elifBranches;
+    AstNode *elseBranch;
+};
+
+class WhileNode : public AstNode
+{
+public:
+    WhileNode(AstNode *condition, AstNode *body)
+        : AstNode(AstNodeType::While), condition(condition), body(body) {}
+    PyObject *accept(NodeVisitor *visitor) override;
+    AstNode *condition;
+    AstNode *body;
+};
+
 class IntNode : public AstNode
 {
 public:
@@ -187,6 +213,8 @@ public:
     virtual PyObject *visitBreakNode(BreakNode *node) = 0;
     virtual PyObject *visitContinueNode(ContinueNode *node) = 0;
     virtual PyObject *visitReturnNode(ReturnNode *node) = 0;
+    virtual PyObject *visitIfNode(IfNode *node) = 0;
+    virtual PyObject *visitWhileNode(WhileNode *node) = 0;
     virtual PyObject *visitIntNode(IntNode *node) = 0;
     virtual PyObject *visitFloatNode(FloatNode *node) = 0;
     virtual PyObject *visitStringNode(StringNode *node) = 0;
