@@ -42,6 +42,35 @@ public:
     AstNodeType type;
 };
 
+class PassNode : public AstNode
+{
+public:
+    PassNode() : AstNode(AstNodeType::Pass) {}
+    PyObject *accept(NodeVisitor *visitor) override;
+};
+
+class BreakNode : public AstNode
+{
+public:
+    BreakNode() : AstNode(AstNodeType::Break) {}
+    PyObject *accept(NodeVisitor *visitor) override;
+};
+
+class ContinueNode : public AstNode
+{
+public:
+    ContinueNode() : AstNode(AstNodeType::Continue) {}
+    PyObject *accept(NodeVisitor *visitor) override;
+};
+
+class ReturnNode : public AstNode
+{
+public:
+    ReturnNode(AstNode *value) : AstNode(AstNodeType::Return), value(value) {}
+    PyObject *accept(NodeVisitor *visitor) override;
+    AstNode *value;
+};
+
 class IntNode : public AstNode
 {
 public:
@@ -146,6 +175,7 @@ public:
     PyObject *accept(NodeVisitor *visitor) override;
     AstNode *expression;
 };
+
 
 class NodeVisitor
 {

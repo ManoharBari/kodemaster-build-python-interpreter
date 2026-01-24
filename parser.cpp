@@ -73,6 +73,21 @@ AstNode *Parser::parseSimpleStmt()
 {
     if (match(TokenType::Print))
         return parsePrintStmt();
+    if (match(TokenType::Pass))
+        return new PassNode();
+    if (match(TokenType::Break))
+        return new BreakNode();
+    if (match(TokenType::Continue))
+        return new ContinueNode();
+    if (match(TokenType::Return))
+    {
+        AstNode *value = nullptr;
+        if (peek().type != TokenType::Newline && !isAtEnd())
+        {
+            value = parseExpr();
+        }
+        return new ReturnNode(value);
+    }
     return parseExpr();
 }
 
@@ -92,7 +107,7 @@ AstNode *Parser::parseAssign()
     AstNode *expr = parseOr();
     if (match(TokenType::Equals))
     {
-        AstNode *value = parseAssign(); 
+        AstNode *value = parseAssign();
         if (expr->type != AstNodeType::Name)
         {
             throw std::runtime_error("Invalid assignment target");
@@ -172,7 +187,7 @@ AstNode *Parser::parsePower()
     if (match(TokenType::DoubleStar))
     {
         Token op = previous();
-        return new BinaryOpNode(left, op, parsePower()); 
+        return new BinaryOpNode(left, op, parsePower());
     }
     return left;
 }
