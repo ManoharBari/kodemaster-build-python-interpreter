@@ -176,7 +176,6 @@ public:
     AstNode *expression;
 };
 
-
 class NodeVisitor
 {
 public:
@@ -184,6 +183,10 @@ public:
     virtual PyObject *visitProgramNode(ProgramNode *node) = 0;
     virtual PyObject *visitBlockNode(BlockNode *node) = 0;
     virtual PyObject *visitPrintNode(PrintNode *node) = 0;
+    virtual PyObject *visitPassNode(PassNode *node) = 0;
+    virtual PyObject *visitBreakNode(BreakNode *node) = 0;
+    virtual PyObject *visitContinueNode(ContinueNode *node) = 0;
+    virtual PyObject *visitReturnNode(ReturnNode *node) = 0;
     virtual PyObject *visitIntNode(IntNode *node) = 0;
     virtual PyObject *visitFloatNode(FloatNode *node) = 0;
     virtual PyObject *visitStringNode(StringNode *node) = 0;

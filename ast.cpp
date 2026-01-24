@@ -12,3 +12,7 @@ PyObject *AssignNode::accept(NodeVisitor *visitor) { return visitor->visitAssign
 PyObject *BlockNode::accept(NodeVisitor *visitor) { return visitor->visitBlockNode(this); }
 PyObject *ProgramNode::accept(NodeVisitor *visitor) { return visitor->visitProgramNode(this); }
 PyObject *PrintNode::accept(NodeVisitor *visitor) { return visitor->visitPrintNode(this); }
+PyObject *PassNode::accept(NodeVisitor *visitor) { return visitor->visitPassNode(this); }
+PyObject *BreakNode::accept(NodeVisitor *visitor) { return visitor->visitBreakNode(this); }
+PyObject *ContinueNode::accept(NodeVisitor *visitor) { return visitor->visitContinueNode(this); }
+PyObject *ReturnNode::accept(NodeVisitor *visitor) { return visitor->visitReturnNode(this); }
