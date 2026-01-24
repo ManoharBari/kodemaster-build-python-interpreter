@@ -18,3 +18,6 @@ PyObject *ContinueNode::accept(NodeVisitor *visitor) { return visitor->visitCont
 PyObject *ReturnNode::accept(NodeVisitor *visitor) { return visitor->visitReturnNode(this); }
 PyObject *IfNode::accept(NodeVisitor *visitor) { return visitor->visitIfNode(this); }
 PyObject *WhileNode::accept(NodeVisitor *visitor) { return visitor->visitWhileNode(this); }
+PyObject *FunctionNode::accept(NodeVisitor *visitor) { return visitor->visitFunctionNode(this); }
+PyObject *CallNode::accept(NodeVisitor *visitor) { return visitor->visitCallNode(this); }
+PyObject *PropertyNode::accept(NodeVisitor *visitor) { return visitor->visitPropertyNode(this); }

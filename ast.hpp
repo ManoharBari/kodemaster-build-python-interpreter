@@ -97,6 +97,37 @@ public:
     AstNode *body;
 };
 
+class FunctionNode : public AstNode
+{
+public:
+    FunctionNode(const std::string &name, std::vector<std::string> params, AstNode *body)
+        : AstNode(AstNodeType::Function), name(name), params(params), body(body) {}
+    PyObject *accept(NodeVisitor *visitor) override;
+    std::string name;
+    std::vector<std::string> params;
+    AstNode *body;
+};
+
+class CallNode : public AstNode
+{
+public:
+    CallNode(AstNode *callee, std::vector<AstNode *> args)
+        : AstNode(AstNodeType::Call), callee(callee), args(args) {}
+    PyObject *accept(NodeVisitor *visitor) override;
+    AstNode *callee;
+    std::vector<AstNode *> args;
+};
+
+class PropertyNode : public AstNode
+{
+public:
+    PropertyNode(AstNode *object, const std::string &property)
+        : AstNode(AstNodeType::Property), object(object), property(property) {}
+    PyObject *accept(NodeVisitor *visitor) override;
+    AstNode *object;
+    std::string property;
+};
+
 class IntNode : public AstNode
 {
 public:
@@ -215,6 +246,9 @@ public:
     virtual PyObject *visitReturnNode(ReturnNode *node) = 0;
     virtual PyObject *visitIfNode(IfNode *node) = 0;
     virtual PyObject *visitWhileNode(WhileNode *node) = 0;
+    virtual PyObject *visitFunctionNode(FunctionNode *node) = 0;
+    virtual PyObject *visitCallNode(CallNode *node) = 0;
+    virtual PyObject *visitPropertyNode(PropertyNode *node) = 0;
     virtual PyObject *visitIntNode(IntNode *node) = 0;
     virtual PyObject *visitFloatNode(FloatNode *node) = 0;
     virtual PyObject *visitStringNode(StringNode *node) = 0;

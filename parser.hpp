@@ -20,7 +20,8 @@ private:
     AstNode *parseIfStmt();
     AstNode *parseWhileStmt();
     AstNode *parseSuite();
-
+    AstNode *parseFunctionDef();
+    AstNode *parseCall(AstNode *callee);
     AstNode *parseExpr();
     AstNode *parseAssign();
     AstNode *parseOr();

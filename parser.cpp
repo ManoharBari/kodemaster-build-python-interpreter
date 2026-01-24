@@ -202,30 +202,32 @@ AstNode *Parser::parseUnary()
 AstNode *Parser::parsePrimary()
 {
     if (match(TokenType::Int))
-        return new IntNode(previous());
+        return parseCall(new IntNode(previous()));
     if (match(TokenType::Float))
-        return new FloatNode(previous());
+        return parseCall(new FloatNode(previous()));
     if (match(TokenType::String))
-        return new StringNode(previous());
+        return parseCall(new StringNode(previous()));
     if (match(TokenType::True))
-        return new BooleanNode(previous());
+        return parseCall(new BooleanNode(previous()));
     if (match(TokenType::False))
-        return new BooleanNode(previous());
+        return parseCall(new BooleanNode(previous()));
     if (match(TokenType::None))
-        return new NullNode();
+        return parseCall(new NullNode());
     if (match(TokenType::Name))
-        return new NameNode(previous());
+        return parseCall(new NameNode(previous()));
     if (match(TokenType::LeftParen))
     {
         AstNode *expr = parseExpr();
         consume(TokenType::RightParen);
-        return expr;
+        return parseCall(expr);
     }
     throw std::runtime_error("Expected expression");
 }
 
 AstNode *Parser::parseStmt()
 {
+    if (match(TokenType::Def))
+        return parseFunctionDef();
     if (match(TokenType::If))
         return parseIfStmt();
     if (match(TokenType::While))
@@ -282,4 +284,53 @@ AstNode *Parser::parseWhileStmt()
     consume(TokenType::Colon);
     AstNode *body = parseSuite();
     return new WhileNode(condition, body);
+}
+
+AstNode *Parser::parseFunctionDef()
+{
+    Token nameToken = consume(TokenType::Name);
+    consume(TokenType::LeftParen);
+
+    std::vector<std::string> params;
+    if (peek().type != TokenType::RightParen)
+    {
+        params.push_back(consume(TokenType::Name).lexeme);
+        while (match(TokenType::Comma))
+        {
+            params.push_back(consume(TokenType::Name).lexeme);
+        }
+    }
+
+    consume(TokenType::RightParen);
+    consume(TokenType::Colon);
+
+    return new FunctionNode(nameToken.lexeme, params, parseSuite());
+}
+
+AstNode *Parser::parseCall(AstNode *callee)
+{
+    while (true)
+    {
+        if (match(TokenType::LeftParen))
+        {
+            std::vector<AstNode *> args;
+            if (peek().type != TokenType::RightParen)
+            {
+                args.push_back(parseExpr());
+                while (match(TokenType::Comma))
+                    args.push_back(parseExpr());
+            }
+            consume(TokenType::RightParen);
+            callee = new CallNode(callee, args);
+        }
+        else if (match(TokenType::Dot))
+        {
+            callee = new PropertyNode(callee, consume(TokenType::Name).lexeme);
+        }
+        else
+        {
+            break;
+        }
+    }
+    return callee;
 }
