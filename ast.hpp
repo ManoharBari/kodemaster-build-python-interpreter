@@ -128,6 +128,16 @@ public:
     std::string property;
 };
 
+class ClassNode : public AstNode
+{
+public:
+    ClassNode(const std::string &name, AstNode *body)
+        : AstNode(AstNodeType::Class), name(name), body(body) {}
+    PyObject *accept(NodeVisitor *visitor) override;
+    std::string name;
+    AstNode *body;
+};
+
 class IntNode : public AstNode
 {
 public:
@@ -249,6 +259,7 @@ public:
     virtual PyObject *visitFunctionNode(FunctionNode *node) = 0;
     virtual PyObject *visitCallNode(CallNode *node) = 0;
     virtual PyObject *visitPropertyNode(PropertyNode *node) = 0;
+    virtual PyObject *visitClassNode(ClassNode *node) = 0;
     virtual PyObject *visitIntNode(IntNode *node) = 0;
     virtual PyObject *visitFloatNode(FloatNode *node) = 0;
     virtual PyObject *visitStringNode(StringNode *node) = 0;

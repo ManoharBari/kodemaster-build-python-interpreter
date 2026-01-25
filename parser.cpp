@@ -92,6 +92,13 @@ AstNode *Parser::parsePrintStmt()
     return new PrintNode(expr);
 }
 
+AstNode *Parser::parseClassDef()
+{
+    Token nameToken = consume(TokenType::Name);
+    consume(TokenType::Colon);
+    return new ClassNode(nameToken.lexeme, parseSuite());
+}
+
 AstNode *Parser::parseExpr()
 {
     return parseAssign();
@@ -226,12 +233,18 @@ AstNode *Parser::parsePrimary()
 
 AstNode *Parser::parseStmt()
 {
-    if (match(TokenType::Def))
-        return parseFunctionDef();
-    if (match(TokenType::If))
-        return parseIfStmt();
-    if (match(TokenType::While))
-        return parseWhileStmt();
+    while (match(TokenType::Newline))
+    {
+
+        if (match(TokenType::If))
+            return parseIfStmt();
+        if (match(TokenType::While))
+            return parseWhileStmt();
+        if (match(TokenType::Def))
+            return parseFunctionDef();
+        if (match(TokenType::Class))
+            return parseClassDef();
+    }
     return parseSimpleStmt();
 }
 

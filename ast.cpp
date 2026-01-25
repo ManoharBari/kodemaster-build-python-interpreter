@@ -21,3 +21,4 @@ PyObject *WhileNode::accept(NodeVisitor *visitor) { return visitor->visitWhileNo
 PyObject *FunctionNode::accept(NodeVisitor *visitor) { return visitor->visitFunctionNode(this); }
 PyObject *CallNode::accept(NodeVisitor *visitor) { return visitor->visitCallNode(this); }
 PyObject *PropertyNode::accept(NodeVisitor *visitor) { return visitor->visitPropertyNode(this); }
+PyObject *ClassNode::accept(NodeVisitor *visitor) { return visitor->visitClassNode(this); }

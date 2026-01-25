@@ -22,6 +22,7 @@ private:
     AstNode *parseSuite();
     AstNode *parseFunctionDef();
     AstNode *parseCall(AstNode *callee);
+    AstNode *parseClassDef();
     AstNode *parseExpr();
     AstNode *parseAssign();
     AstNode *parseOr();
