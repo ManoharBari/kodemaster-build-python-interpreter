@@ -1,6 +1,9 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include "lexer.hpp"
+#include "parser.hpp"
+#include "interpreter.hpp"
 
 int main(int argc, char *argv[])
 {
@@ -22,7 +25,28 @@ int main(int argc, char *argv[])
     // Read entire file into a string using iterator trick
     std::string source((std::istreambuf_iterator<char>(inputFile)), {});
 
-    std::cout << "Read " << source.length() << " bytes\n";
+    try
+    {
+        // Lexing
+        Lexer lexer(source);
+        std::vector<Token> tokens = lexer.scanTokens();
+
+        // Parsing
+        Parser parser(tokens);
+        ProgramNode *program = parser.parse();
+
+        // Interpreting
+        Interpreter interpreter;
+        interpreter.interpret(program);
+
+        // Cleanup
+        delete program;
+    }
+    catch (const std::exception &e)
+    {
+        std::cerr << "Error: " << e.what() << std::endl;
+        return 1;
+    }
 
     return 0;
 }
