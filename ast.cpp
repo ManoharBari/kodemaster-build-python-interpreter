@@ -1,5 +1,6 @@
 #include "ast.hpp"
 
+
 PyObject *IntNode::accept(NodeVisitor *visitor) { return visitor->visitIntNode(this); }
 PyObject *FloatNode::accept(NodeVisitor *visitor) { return visitor->visitFloatNode(this); }
 PyObject *StringNode::accept(NodeVisitor *visitor) { return visitor->visitStringNode(this); }
