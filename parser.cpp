@@ -66,8 +66,8 @@ std::vector<AstNode *> Parser::parseStmtList()
 
 AstNode *Parser::parseSimpleStmt()
 {
-    // if (match(TokenType::Print))
-    //     return parsePrintStmt();
+    if (match(TokenType::Print))
+        return parsePrintStmt();
     if (match(TokenType::Pass))
         return new PassNode();
     if (match(TokenType::Break))
