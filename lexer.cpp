@@ -34,7 +34,7 @@ Lexer::Lexer(const std::string &source) : source(source), current(0), start(0), 
     keywords["return"] = TokenType::Return;
     keywords["class"] = TokenType::Class;
     keywords["pass"] = TokenType::Pass;
-    // keywords["print"] = TokenType::Print;
+    keywords["print"] = TokenType::Print;
 
     indentLevels.push(0);
 }

@@ -245,6 +245,8 @@ AstNode *Parser::parseStmt()
         if (match(TokenType::Class))
             return parseClassDef();
     }
+    if (isAtEnd())
+        return new PassNode();
     return parseSimpleStmt();
 }
 

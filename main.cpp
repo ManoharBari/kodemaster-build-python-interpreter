@@ -37,7 +37,7 @@ int main(int argc, char *argv[])
 
         // Interpreting
         Interpreter interpreter;
-        interpreter.interpret(parser.parse());
+        interpreter.interpret(program);
 
         // Cleanup
         delete program;
