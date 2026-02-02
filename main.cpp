@@ -31,13 +31,9 @@ int main(int argc, char *argv[])
         Lexer lexer(source);
         std::vector<Token> tokens = lexer.scanTokens();
 
-        // Parsing
-        Parser parser(tokens);
-        ProgramNode *program = parser.parse();
-
         // Interpreting
         Interpreter interpreter;
-        interpreter.interpret(program);
+        interpreter.interpret( parser.parse());
 
         // Cleanup
         delete program;
