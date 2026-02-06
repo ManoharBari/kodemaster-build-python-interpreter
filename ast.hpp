@@ -225,6 +225,13 @@ public:
     std::vector<AstNode *> statements;
 };
 
+// ==================== If/Elif/Else ====================
+struct ElifClause
+{
+    std::shared_ptr<AstNode> condition;
+    std::shared_ptr<AstNode> body;
+};
+
 class ProgramNode : public AstNode
 {
 public:
