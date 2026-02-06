@@ -44,6 +44,11 @@ public:
         define(name, value);
     }
 
+    const std::unordered_map<std::string, std::shared_ptr<PyObject>> &getVariables() const
+    {
+        return variables;
+    }
+
 private:
     Scope *enclosing;
     std::unordered_map<std::string, std::shared_ptr<PyObject>> variables;

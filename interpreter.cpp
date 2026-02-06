@@ -40,65 +40,173 @@ PyObject *Interpreter::visitPrintNode(PrintNode *node)
 
 PyObject *Interpreter::visitPassNode(PassNode *node)
 {
-    return new PyNone();
+    return nullptr;
 }
 
 PyObject *Interpreter::visitBreakNode(BreakNode *node)
 {
-    // TODO: Implement with exception handling
-    return new PyNone();
+    throw BreakException();
 }
 
 PyObject *Interpreter::visitContinueNode(ContinueNode *node)
 {
-    // TODO: Implement with exception handling
-    return new PyNone();
+    throw ContinueException();
 }
 
 PyObject *Interpreter::visitReturnNode(ReturnNode *node)
 {
-    // TODO: Implement with exception handling
-    if (node->value)
-    {
-        return node->value->accept(this);
-    }
-    return new PyNone();
+    PyObject *value = node->value ? node->value->accept(this) : static_cast<PyObject *>(new PyNone());
+    throw ReturnException(value);
 }
 
 PyObject *Interpreter::visitIfNode(IfNode *node)
 {
-    // TODO: Implement
+    if (node->condition->accept(this)->isTruthy())
+    {
+        node->thenBranch->accept(this);
+        return new PyNone();
+    }
+    for (auto &elifPair : node->elifBranches)
+    {
+        if (elifPair.first->accept(this)->isTruthy())
+        {
+            elifPair.second->accept(this);
+            return new PyNone();
+        }
+    }
+    if (node->elseBranch)
+        node->elseBranch->accept(this);
     return new PyNone();
 }
 
 PyObject *Interpreter::visitWhileNode(WhileNode *node)
 {
-    // TODO: Implement
+    while (node->condition->accept(this)->isTruthy())
+    {
+        try
+        {
+            node->body->accept(this);
+        }
+        catch (const BreakException &)
+        {
+            break;
+        }
+        catch (const ContinueException &)
+        {
+            continue;
+        }
+    }
     return new PyNone();
 }
 
 PyObject *Interpreter::visitFunctionNode(FunctionNode *node)
 {
-    // TODO: Implement
-    return new PyNone();
+    PyFunction *func = new PyFunction(node->name, node->params, node->body, currentScope);
+    currentScope->define(node->name, func);
+    return func;
 }
 
 PyObject *Interpreter::visitCallNode(CallNode *node)
 {
-    // TODO: Implement
+    PyObject *callee = node->callee->accept(this);
+    std::vector<PyObject *> args;
+    args.reserve(node->args.size());
+    for (AstNode *arg : node->args)
+        args.push_back(arg->accept(this));
+
+    if (auto func = dynamic_cast<PyFunction *>(callee))
+    {
+        Scope *previous = currentScope;
+        std::unique_ptr<Scope> callScope = std::make_unique<Scope>(func->closure);
+        currentScope = callScope.get();
+
+        size_t paramCount = func->params.size();
+        for (size_t i = 0; i < paramCount; ++i)
+        {
+            PyObject *value = (i < args.size()) ? args[i] : static_cast<PyObject *>(new PyNone());
+            currentScope->define(func->params[i], value);
+        }
+
+        try
+        {
+            func->body->accept(this);
+        }
+        catch (const ReturnException &ex)
+        {
+            currentScope = previous;
+            return ex.value;
+        }
+        currentScope = previous;
+        return new PyNone();
+    }
+
+    if (auto klass = dynamic_cast<PyClass *>(callee))
+    {
+        PyInstance *instance = new PyInstance(klass);
+        PyObject *initObj = klass->get("init");
+        if (auto initFn = dynamic_cast<PyFunction *>(initObj))
+        {
+            Scope *previous = currentScope;
+            std::unique_ptr<Scope> callScope = std::make_unique<Scope>(initFn->closure);
+            currentScope = callScope.get();
+
+            size_t paramCount = initFn->params.size();
+            for (size_t i = 0; i < paramCount; ++i)
+            {
+                PyObject *value = nullptr;
+                if (i == 0)
+                    value = instance;
+                else
+                    value = (i - 1 < args.size()) ? args[i - 1] : static_cast<PyObject *>(new PyNone());
+                currentScope->define(initFn->params[i], value);
+            }
+
+            try
+            {
+                initFn->body->accept(this);
+            }
+            catch (const ReturnException &)
+            {
+            }
+            currentScope = previous;
+        }
+        return instance;
+    }
+
     return new PyNone();
 }
 
 PyObject *Interpreter::visitPropertyNode(PropertyNode *node)
 {
-    // TODO: Implement
+    PyObject *obj = node->object->accept(this);
+    if (auto instance = dynamic_cast<PyInstance *>(obj))
+    {
+        PyObject *value = instance->get(node->property);
+        return value ? value : static_cast<PyObject *>(new PyNone());
+    }
+    if (auto klass = dynamic_cast<PyClass *>(obj))
+    {
+        PyObject *value = klass->get(node->property);
+        return value ? value : static_cast<PyObject *>(new PyNone());
+    }
     return new PyNone();
 }
 
 PyObject *Interpreter::visitClassNode(ClassNode *node)
 {
-    // TODO: Implement
-    return new PyNone();
+    Scope *previous = currentScope;
+    std::unique_ptr<Scope> classScope = std::make_unique<Scope>(previous);
+    currentScope = classScope.get();
+    node->body->accept(this);
+    currentScope = previous;
+
+    PyClass *klass = new PyClass(node->name);
+    for (const auto &pair : classScope->getVariables())
+    {
+        klass->set(pair.first, pair.second);
+    }
+    currentScope->define(node->name, klass);
+    return klass;
 }
 
 PyObject *Interpreter::visitIntNode(IntNode *node)
