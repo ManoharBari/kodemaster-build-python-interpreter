@@ -3,12 +3,6 @@
 #include <string>
 #include <memory>
 #include <vector>
-#include <unordered_map>
-#include <utility>
-
-class AstNode;
-class Scope;
-#include <vector>
 #include <map>
 #include <stdexcept>
 
@@ -16,13 +10,10 @@ class Scope;
 class AstNode;
 class Scope;
 
-// Control Flow Exceptions
-struct BreakException : public std::exception
-{
-};
-struct ContinueException : public std::exception
-{
-};
+// ==================== Control Flow Exceptions ====================
+struct BreakException : public std::exception {};
+
+struct ContinueException : public std::exception {};
 
 struct ReturnException : public std::exception
 {
@@ -30,6 +21,7 @@ struct ReturnException : public std::exception
     ReturnException(std::shared_ptr<class PyObject> val) : value(val) {}
 };
 
+// ==================== Base PyObject ====================
 class PyObject
 {
 public:
@@ -38,6 +30,7 @@ public:
     virtual bool isTruthy() const = 0;
 };
 
+// ==================== Basic Types ====================
 class PyInt : public PyObject
 {
 public:
@@ -81,67 +74,7 @@ public:
     bool isTruthy() const override { return false; }
 };
 
-class PyFunction : public PyObject
-{
-public:
-    PyFunction(const std::string &name, std::vector<std::string> params, AstNode *body, Scope *closure)
-        : name(name), params(std::move(params)), body(body), closure(closure) {}
-    std::string toString() const override { return "<function " + name + ">"; }
-    bool isTruthy() const override { return true; }
-    std::string name;
-    std::vector<std::string> params;
-    AstNode *body;
-    Scope *closure;
-};
-
-class PyClass : public PyObject
-{
-public:
-    PyClass(const std::string &name) : name(name) {}
-    std::string toString() const override { return "<class " + name + ">"; }
-    bool isTruthy() const override { return true; }
-    PyObject *get(const std::string &method) const
-    {
-        auto it = methods.find(method);
-        if (it == methods.end())
-            return nullptr;
-        return it->second.get();
-    }
-    void set(const std::string &method, PyObject *value)
-    {
-        methods[method] = std::shared_ptr<PyObject>(value);
-    }
-    void set(const std::string &method, std::shared_ptr<PyObject> value)
-    {
-        methods[method] = std::move(value);
-    }
-    std::string name;
-    std::unordered_map<std::string, std::shared_ptr<PyObject>> methods;
-};
-
-class PyInstance : public PyObject
-{
-public:
-    PyInstance(PyClass *klass) : klass(klass) {}
-    std::string toString() const override { return "<instance " + klass->name + ">"; }
-    bool isTruthy() const override { return true; }
-    PyObject *get(const std::string &name)
-    {
-        auto it = attributes.find(name);
-        if (it != attributes.end())
-            return it->second.get();
-        if (klass != nullptr)
-            return klass->get(name);
-        return nullptr;
-    }
-    void set(const std::string &name, PyObject *value)
-    {
-        attributes[name] = std::shared_ptr<PyObject>(value);
-    }
-    PyClass *klass;
-    std::unordered_map<std::string, std::shared_ptr<PyObject>> attributes;
-};
-
+// ==================== PyFunction ====================
 class PyFunction : public PyObject
 {
 public:
@@ -164,6 +97,7 @@ public:
     bool isTruthy() const override { return true; }
 };
 
+// ==================== PyClass ====================
 class PyClass : public PyObject
 {
 public:
@@ -180,6 +114,7 @@ public:
     bool isTruthy() const override { return true; }
 };
 
+// ==================== PyInstance ====================
 class PyInstance : public PyObject
 {
 public:
