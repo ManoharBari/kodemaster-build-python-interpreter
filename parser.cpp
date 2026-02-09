@@ -233,21 +233,28 @@ AstNode *Parser::parsePrimary()
 
 AstNode *Parser::parseStmt()
 {
+    // Skip leading newlines
     while (match(TokenType::Newline))
     {
-
-        if (match(TokenType::If))
-            return parseIfStmt();
-        if (match(TokenType::While))
-            return parseWhileStmt();
-        if (match(TokenType::Def))
-            return parseFunctionDef();
-        if (match(TokenType::Class))
-            return parseClassDef();
     }
+
     if (isAtEnd())
         return new PassNode();
-    return parseSimpleStmt();
+
+    // Check for compound statements
+    if (match(TokenType::If))
+        return parseIfStmt();
+    if (match(TokenType::While))
+        return parseWhileStmt();
+    if (match(TokenType::Def))
+        return parseFunctionDef();
+    if (match(TokenType::Class))
+        return parseClassDef();
+
+    // Otherwise it's a simple statement
+    AstNode *stmt = parseSimpleStmt();
+    match(TokenType::Newline); // Consume trailing newline if present
+    return stmt;
 }
 
 AstNode *Parser::parseSuite()
@@ -264,7 +271,6 @@ AstNode *Parser::parseSuite()
         if (peek().type == TokenType::Dedent)
             break;
         statements.push_back(parseStmt());
-        match(TokenType::Newline);
     }
     return new BlockNode(statements);
 }
