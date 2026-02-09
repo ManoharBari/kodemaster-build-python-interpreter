@@ -263,7 +263,7 @@ AstNode *Parser::parseSuite()
     consume(TokenType::Indent);
 
     std::vector<AstNode *> statements;
-    while (!match(TokenType::Dedent) && !isAtEnd())
+    while (peek().type != TokenType::Dedent && !isAtEnd())
     {
         while (match(TokenType::Newline))
         {
@@ -272,6 +272,8 @@ AstNode *Parser::parseSuite()
             break;
         statements.push_back(parseStmt());
     }
+
+    consume(TokenType::Dedent); // Consume the dedent at the end
     return new BlockNode(statements);
 }
 
