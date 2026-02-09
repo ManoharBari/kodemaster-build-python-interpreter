@@ -10,17 +10,6 @@
 class AstNode;
 class Scope;
 
-// ==================== Control Flow Exceptions ====================
-struct BreakException : public std::exception {};
-
-struct ContinueException : public std::exception {};
-
-struct ReturnException : public std::exception
-{
-    PyObject *value;
-    explicit ReturnException(PyObject *val) : value(val) {}
-};
-
 // ==================== Base PyObject ====================
 class PyObject
 {
@@ -28,6 +17,21 @@ public:
     virtual ~PyObject() = default;
     virtual std::string toString() const = 0;
     virtual bool isTruthy() const = 0;
+};
+
+// ==================== Control Flow Exceptions ====================
+struct BreakException : public std::exception
+{
+};
+
+struct ContinueException : public std::exception
+{
+};
+
+struct ReturnException : public std::exception
+{
+    std::shared_ptr<PyObject> value;
+    ReturnException(std::shared_ptr<PyObject> val) : value(val) {}
 };
 
 // ==================== Basic Types ====================
@@ -80,13 +84,13 @@ class PyFunction : public PyObject
 public:
     std::string name;
     std::vector<std::string> params;
-    AstNode *body;
-    Scope *closure; // Lexical scope where function was defined
+    std::shared_ptr<AstNode> body;
+    std::shared_ptr<Scope> closure; // Lexical scope where function was defined
 
     PyFunction(const std::string &name,
                const std::vector<std::string> &params,
-               AstNode *body,
-               Scope *closure)
+               std::shared_ptr<AstNode> body,
+               std::shared_ptr<Scope> closure)
         : name(name), params(params), body(body), closure(closure) {}
 
     std::string toString() const override
@@ -106,19 +110,19 @@ public:
 
     PyClass(const std::string &name) : name(name) {}
 
-    std::shared_ptr<PyObject> get(const std::string &method)
+    std::shared_ptr<PyObject> get(const std::string &name)
     {
-        auto it = methods.find(method);
+        auto it = methods.find(name);
         if (it != methods.end())
         {
             return it->second;
         }
-        throw std::runtime_error("Attribute '" + method + "' not found");
+        throw std::runtime_error("Method '" + name + "' not found");
     }
 
-    void set(const std::string &method, std::shared_ptr<PyObject> value)
+    void set(const std::string &name, std::shared_ptr<PyObject> value)
     {
-        methods[method] = value;
+        methods[name] = value;
     }
 
     std::string toString() const override
@@ -148,7 +152,11 @@ public:
         }
 
         // Then check class methods
-        return klass->get(name);
+        auto method_it = klass->methods.find(name);
+        if (method_it != klass->methods.end())
+        {
+            return method_it->second;
+        }
 
         throw std::runtime_error("Attribute '" + name + "' not found");
     }

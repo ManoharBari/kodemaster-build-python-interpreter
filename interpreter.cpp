@@ -55,7 +55,9 @@ PyObject *Interpreter::visitContinueNode(ContinueNode *node)
 
 PyObject *Interpreter::visitReturnNode(ReturnNode *node)
 {
-    PyObject *value = node->value ? node->value->accept(this) : static_cast<PyObject *>(new PyNone());
+    std::shared_ptr<PyObject> value = node->value
+                                          ? std::shared_ptr<PyObject>(node->value->accept(this))
+                                          : std::make_shared<PyNone>();
     throw ReturnException(value);
 }
 
@@ -101,7 +103,10 @@ PyObject *Interpreter::visitWhileNode(WhileNode *node)
 
 PyObject *Interpreter::visitFunctionNode(FunctionNode *node)
 {
-    PyFunction *func = new PyFunction(node->name, node->params, node->body, currentScope);
+    auto body = std::shared_ptr<AstNode>(node->body);
+    auto closure = std::shared_ptr<Scope>(currentScope, [](Scope *) {});
+
+    PyFunction *func = new PyFunction(node->name, node->params, body, closure);
     currentScope->define(node->name, func);
     return func;
 }
@@ -117,7 +122,7 @@ PyObject *Interpreter::visitCallNode(CallNode *node)
     if (auto func = dynamic_cast<PyFunction *>(callee))
     {
         Scope *previous = currentScope;
-        std::unique_ptr<Scope> callScope = std::make_unique<Scope>(func->closure);
+        std::unique_ptr<Scope> callScope = std::make_unique<Scope>(func->closure.get());
         currentScope = callScope.get();
 
         size_t paramCount = func->params.size();
@@ -134,7 +139,7 @@ PyObject *Interpreter::visitCallNode(CallNode *node)
         catch (const ReturnException &ex)
         {
             currentScope = previous;
-            return ex.value;
+            return ex.value.get();
         }
         currentScope = previous;
         return new PyNone();
@@ -158,7 +163,7 @@ PyObject *Interpreter::visitCallNode(CallNode *node)
             if (auto initFn = dynamic_cast<PyFunction *>(initObj.get()))
             {
                 Scope *previous = currentScope;
-                std::unique_ptr<Scope> callScope = std::make_unique<Scope>(initFn->closure);
+                std::unique_ptr<Scope> callScope = std::make_unique<Scope>(initFn->closure.get());
                 currentScope = callScope.get();
 
                 size_t paramCount = initFn->params.size();
@@ -215,7 +220,7 @@ PyObject *Interpreter::visitClassNode(ClassNode *node)
     PyClass *klass = new PyClass(node->name);
     for (const auto &pair : classScope->getVariables())
     {
-        klass->set(pair.first, pair.second);
+        klass->set(pair.first, std::shared_ptr<PyObject>(pair.second));
     }
     currentScope->define(node->name, klass);
     return klass;
@@ -255,7 +260,8 @@ PyObject *Interpreter::visitBinaryOpNode(BinaryOpNode *node)
 {
     PyObject *left = node->left->accept(this);
 
-    auto getNumeric = [](PyObject *obj, double &out, bool &isInt) -> bool {
+    auto getNumeric = [](PyObject *obj, double &out, bool &isInt) -> bool
+    {
         if (auto v = dynamic_cast<PyInt *>(obj))
         {
             out = static_cast<double>(v->value);
