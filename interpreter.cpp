@@ -103,10 +103,10 @@ PyObject *Interpreter::visitWhileNode(WhileNode *node)
 
 PyObject *Interpreter::visitFunctionNode(FunctionNode *node)
 {
-    auto body = std::shared_ptr<AstNode>(node->body);
-    auto closure = std::shared_ptr<Scope>(currentScope, [](Scope *) {});
+    auto bodyPtr = std::shared_ptr<AstNode>(node->body, [](AstNode *) {});
+    auto closurePtr = std::shared_ptr<Scope>(currentScope, [](Scope *) {});
 
-    PyFunction *func = new PyFunction(node->name, node->params, body, closure);
+    PyFunction *func = new PyFunction(node->name, node->params, bodyPtr, closurePtr);
     currentScope->define(node->name, func);
     return func;
 }
@@ -220,7 +220,7 @@ PyObject *Interpreter::visitClassNode(ClassNode *node)
     PyClass *klass = new PyClass(node->name);
     for (const auto &pair : classScope->getVariables())
     {
-        klass->set(pair.first, std::shared_ptr<PyObject>(pair.second));
+        klass->set(pair.first, pair.second);
     }
     currentScope->define(node->name, klass);
     return klass;
