@@ -17,8 +17,8 @@ struct ContinueException : public std::exception {};
 
 struct ReturnException : public std::exception
 {
-    std::shared_ptr<class PyObject> value;
-    ReturnException(std::shared_ptr<class PyObject> val) : value(val) {}
+    PyObject *value;
+    explicit ReturnException(PyObject *val) : value(val) {}
 };
 
 // ==================== Base PyObject ====================
@@ -80,13 +80,13 @@ class PyFunction : public PyObject
 public:
     std::string name;
     std::vector<std::string> params;
-    std::shared_ptr<AstNode> body;
-    std::shared_ptr<Scope> closure; // Lexical scope where function was defined
+    AstNode *body;
+    Scope *closure; // Lexical scope where function was defined
 
     PyFunction(const std::string &name,
                const std::vector<std::string> &params,
-               std::shared_ptr<AstNode> body,
-               std::shared_ptr<Scope> closure)
+               AstNode *body,
+               Scope *closure)
         : name(name), params(params), body(body), closure(closure) {}
 
     std::string toString() const override
@@ -105,6 +105,21 @@ public:
     std::map<std::string, std::shared_ptr<PyObject>> methods;
 
     PyClass(const std::string &name) : name(name) {}
+
+    std::shared_ptr<PyObject> get(const std::string &method)
+    {
+        auto it = methods.find(method);
+        if (it != methods.end())
+        {
+            return it->second;
+        }
+        throw std::runtime_error("Attribute '" + method + "' not found");
+    }
+
+    void set(const std::string &method, std::shared_ptr<PyObject> value)
+    {
+        methods[method] = value;
+    }
 
     std::string toString() const override
     {
@@ -133,11 +148,7 @@ public:
         }
 
         // Then check class methods
-        auto method_it = klass->methods.find(name);
-        if (method_it != klass->methods.end())
-        {
-            return method_it->second;
-        }
+        return klass->get(name);
 
         throw std::runtime_error("Attribute '" + name + "' not found");
     }

@@ -5,20 +5,6 @@
 #include "scope.hpp"
 #include <memory>
 
-struct BreakException
-{
-};
-
-struct ContinueException
-{
-};
-
-struct ReturnException
-{
-    explicit ReturnException(PyObject *value) : value(value) {}
-    PyObject *value;
-};
-
 class Interpreter : public NodeVisitor
 {
 public:
