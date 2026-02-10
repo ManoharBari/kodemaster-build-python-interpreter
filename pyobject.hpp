@@ -19,6 +19,29 @@ public:
     virtual bool isTruthy() const = 0;
 };
 
+// ==================== PyFunction ====================
+class PyFunction : public PyObject
+{
+public:
+    std::string name;
+    std::vector<std::string> params;
+    std::shared_ptr<AstNode> body;
+    std::shared_ptr<Scope> closure; // Lexical scope where function was defined
+
+    PyFunction(const std::string &name,
+               const std::vector<std::string> &params,
+               std::shared_ptr<AstNode> body,
+               std::shared_ptr<Scope> closure)
+        : name(name), params(params), body(body), closure(closure) {}
+
+    std::string toString() const override
+    {
+        return "<function " + name + ">";
+    }
+
+    bool isTruthy() const override { return true; }
+};
+
 // ==================== Control Flow Exceptions ====================
 struct BreakException : public std::exception
 {
@@ -76,29 +99,6 @@ class PyNone : public PyObject
 public:
     std::string toString() const override { return "None"; }
     bool isTruthy() const override { return false; }
-};
-
-// ==================== PyFunction ====================
-class PyFunction : public PyObject
-{
-public:
-    std::string name;
-    std::vector<std::string> params;
-    std::shared_ptr<AstNode> body;
-    std::shared_ptr<Scope> closure; // Lexical scope where function was defined
-
-    PyFunction(const std::string &name,
-               const std::vector<std::string> &params,
-               std::shared_ptr<AstNode> body,
-               std::shared_ptr<Scope> closure)
-        : name(name), params(params), body(body), closure(closure) {}
-
-    std::string toString() const override
-    {
-        return "<function " + name + ">";
-    }
-
-    bool isTruthy() const override { return true; }
 };
 
 // ==================== PyClass ====================

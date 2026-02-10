@@ -2,6 +2,7 @@
 #include <iostream>
 #include <cmath>
 #include "pyobject.hpp"
+#include "PyFunction.h"
 
 Interpreter::Interpreter()
 {
@@ -249,7 +250,12 @@ PyObject *Interpreter::visitClassNode(ClassNode *node)
     // Collect methods from class scope
     for (const auto &pair : classScope->getVariables())
     {
-        if (dynamic_cast<PyFunction *>(pair.second))
+        PyFunction *func = dynamic_cast<PyFunction *>(pair.second);
+        if (func)
+        {
+            klass->set(pair.first, func);
+        }
+        else
         {
             klass->set(pair.first, pair.second);
         }
