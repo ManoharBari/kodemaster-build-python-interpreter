@@ -1,6 +1,7 @@
 #include "interpreter.hpp"
 #include <iostream>
 #include <cmath>
+#include "pyobject.hpp"
 
 Interpreter::Interpreter()
 {
