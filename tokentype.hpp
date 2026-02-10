@@ -4,33 +4,39 @@ enum class TokenType {
     // Delimiters
     LeftParen, RightParen,
     Comma, Dot, Colon,
-    
-    // Operators
+
+    // Arithmetic Operators
     Plus, Minus, Star, Slash, Mod,
     DoubleStar, DoubleSlash,
-    
+
+    // Assignment
+    Assign,
+
     // Comparison
-    Equals, EqualEqual, BangEqual,
-    Less, LessEqual, Greater, GreaterEqual,
-    
+    EqualEqual, BangEqual,
+    Less, LessEqual,
+    Greater, GreaterEqual,
+
     // Bitwise
     Pipe, Caret, Ampersand, Tilde,
     LeftShift, RightShift,
-    
-    // Literals
+
+    // Literals & Identifiers
     Int, Float, String, Name,
-    
+
     // Keywords
     True, False, None,
     And, Or, Not,
     If, Elif, Else,
     While, Break, Continue,
     Def, Return, Class, Pass,
+
+    // Built-in (optional as keyword)
     Print,
-    
-    // Whitespace
+
+    // Layout
     Indent, Dedent, Newline,
-    
-    // End of file
+
+    // End
     EndOfFile
 };

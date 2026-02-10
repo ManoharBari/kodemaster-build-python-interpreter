@@ -287,8 +287,7 @@ void Lexer::scanToken()
         break;
 
     case '\n':
-        addToken(TokenType::Newline);
-        line++;
+        handleNewline();
         break;
 
     case '"':

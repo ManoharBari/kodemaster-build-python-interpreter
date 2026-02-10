@@ -59,7 +59,13 @@ std::vector<AstNode *> Parser::parseStmtList()
     std::vector<AstNode *> statements;
     while (!isAtEnd())
     {
-        statements.push_back(parseStmt());
+        AstNode *stmt = parseStmt();
+        statements.push_back(stmt);
+
+        // Consume trailing newlines after each statement
+        while (match(TokenType::Newline))
+        {
+        }
     }
     return statements;
 }
@@ -241,7 +247,7 @@ AstNode *Parser::parseStmt()
     if (isAtEnd())
         return new PassNode();
 
-    // Check for compound statements
+    // Check for compound statements (if, while, def, class)
     if (match(TokenType::If))
         return parseIfStmt();
     if (match(TokenType::While))
@@ -253,7 +259,7 @@ AstNode *Parser::parseStmt()
 
     // Otherwise it's a simple statement
     AstNode *stmt = parseSimpleStmt();
-    match(TokenType::Newline); // Consume trailing newline if present
+    // Don't consume newline here - let parseStmtList handle it
     return stmt;
 }
 
@@ -263,7 +269,7 @@ AstNode *Parser::parseSuite()
     consume(TokenType::Indent);
 
     std::vector<AstNode *> statements;
-    while (peek().type != TokenType::Dedent && !isAtEnd())
+    while (!match(TokenType::Dedent) && !isAtEnd())
     {
         while (match(TokenType::Newline))
         {
@@ -271,9 +277,8 @@ AstNode *Parser::parseSuite()
         if (peek().type == TokenType::Dedent)
             break;
         statements.push_back(parseStmt());
+        match(TokenType::Newline);
     }
-
-    consume(TokenType::Dedent); // Consume the dedent at the end
     return new BlockNode(statements);
 }
 

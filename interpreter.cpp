@@ -103,8 +103,11 @@ PyObject *Interpreter::visitWhileNode(WhileNode *node)
 
 PyObject *Interpreter::visitFunctionNode(FunctionNode *node)
 {
-    auto bodyPtr = std::shared_ptr<AstNode>(node->body, [](AstNode *) {});
-    auto closurePtr = std::shared_ptr<Scope>(currentScope, [](Scope *) {});
+    // Create a PyFunction - body points to the AST node (not owned)
+    // closure points to current scope (not owned)
+    // We use empty deleters to prevent double-free
+    std::shared_ptr<AstNode> bodyPtr(node->body, [](AstNode *) {});
+    std::shared_ptr<Scope> closurePtr(currentScope, [](Scope *) {});
 
     PyFunction *func = new PyFunction(node->name, node->params, bodyPtr, closurePtr);
     currentScope->define(node->name, func);
@@ -122,27 +125,41 @@ PyObject *Interpreter::visitCallNode(CallNode *node)
     if (auto func = dynamic_cast<PyFunction *>(callee))
     {
         Scope *previous = currentScope;
-        std::unique_ptr<Scope> callScope = std::make_unique<Scope>(func->closure.get());
-        currentScope = callScope.get();
+        Scope *newCallScope = new Scope(func->closure.get());
+        currentScope = newCallScope;
 
         size_t paramCount = func->params.size();
         for (size_t i = 0; i < paramCount; ++i)
         {
-            PyObject *value = (i < args.size()) ? args[i] : static_cast<PyObject *>(new PyNone());
+            PyObject *value = (i < args.size()) ? args[i] : new PyNone();
             currentScope->define(func->params[i], value);
         }
 
+        PyObject *result = new PyNone();
         try
         {
             func->body->accept(this);
         }
         catch (const ReturnException &ex)
         {
-            currentScope = previous;
-            return ex.value.get();
+            // Copy the value before scope cleanup
+            if (auto intVal = dynamic_cast<PyInt *>(ex.value.get()))
+                result = new PyInt(intVal->value);
+            else if (auto floatVal = dynamic_cast<PyFloat *>(ex.value.get()))
+                result = new PyFloat(floatVal->value);
+            else if (auto strVal = dynamic_cast<PyStr *>(ex.value.get()))
+                result = new PyStr(strVal->value);
+            else if (auto boolVal = dynamic_cast<PyBool *>(ex.value.get()))
+                result = new PyBool(boolVal->value);
+            else if (dynamic_cast<PyNone *>(ex.value.get()))
+                result = new PyNone();
+            else
+                result = ex.value.get();
         }
+
         currentScope = previous;
-        return new PyNone();
+        delete newCallScope;
+        return result;
     }
 
     if (auto klass = dynamic_cast<PyClass *>(callee))
@@ -163,8 +180,8 @@ PyObject *Interpreter::visitCallNode(CallNode *node)
             if (auto initFn = dynamic_cast<PyFunction *>(initObj.get()))
             {
                 Scope *previous = currentScope;
-                std::unique_ptr<Scope> callScope = std::make_unique<Scope>(initFn->closure.get());
-                currentScope = callScope.get();
+                Scope *newCallScope = new Scope(initFn->closure.get());
+                currentScope = newCallScope;
 
                 size_t paramCount = initFn->params.size();
                 for (size_t i = 0; i < paramCount; ++i)
@@ -173,7 +190,7 @@ PyObject *Interpreter::visitCallNode(CallNode *node)
                     if (i == 0)
                         value = instance;
                     else
-                        value = (i - 1 < args.size()) ? args[i - 1] : static_cast<PyObject *>(new PyNone());
+                        value = (i - 1 < args.size()) ? args[i - 1] : new PyNone();
                     currentScope->define(initFn->params[i], value);
                 }
 
@@ -185,6 +202,7 @@ PyObject *Interpreter::visitCallNode(CallNode *node)
                 {
                 }
                 currentScope = previous;
+                delete newCallScope;
             }
         }
         return instance;
