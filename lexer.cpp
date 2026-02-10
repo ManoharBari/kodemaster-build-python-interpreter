@@ -240,7 +240,7 @@ void Lexer::scanToken()
         break;
 
     case '=':
-        addToken(match('=') ? TokenType::EqualEqual : TokenType::Equals);
+        addToken(match('=') ? TokenType::EqualEqual : TokenType::Assign);
         break;
     case '!':
         if (match('='))

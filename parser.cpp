@@ -113,7 +113,7 @@ AstNode *Parser::parseExpr()
 AstNode *Parser::parseAssign()
 {
     AstNode *expr = parseOr();
-    if (match(TokenType::Equals))
+    if (match(TokenType::Assign))
     {
         AstNode *value = parseAssign();
         if (expr->type != AstNodeType::Name)
