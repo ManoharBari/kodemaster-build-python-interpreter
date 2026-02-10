@@ -508,3 +508,17 @@ PyObject *Interpreter::visitAssignNode(AssignNode *node)
     currentScope->set(node->name.lexeme, value);
     return value;
 }
+
+PyObject *Interpreter::visitPropertyAssignNode(PropertyAssignNode *node)
+{
+    PyObject *obj = node->object->accept(this);
+    PyObject *value = node->value->accept(this);
+
+    if (auto instance = dynamic_cast<PyInstance *>(obj))
+    {
+        instance->set(node->property, std::shared_ptr<PyObject>(value));
+        return value;
+    }
+
+    throw std::runtime_error("Can only assign properties on instances");
+}

@@ -217,6 +217,17 @@ public:
     AstNode *value;
 };
 
+class PropertyAssignNode : public AstNode
+{
+public:
+    PropertyAssignNode(AstNode *object, const std::string &property, AstNode *value)
+        : AstNode(AstNodeType::Assign), object(object), property(property), value(value) {}
+    PyObject *accept(NodeVisitor *visitor) override;
+    AstNode *object;
+    std::string property;
+    AstNode *value;
+};
+
 class BlockNode : public AstNode
 {
 public:
@@ -277,4 +288,5 @@ public:
     virtual PyObject *visitBinaryOpNode(BinaryOpNode *node) = 0;
     virtual PyObject *visitUnaryOpNode(UnaryOpNode *node) = 0;
     virtual PyObject *visitAssignNode(AssignNode *node) = 0;
+    virtual PyObject *visitPropertyAssignNode(PropertyAssignNode *node) = 0;
 };

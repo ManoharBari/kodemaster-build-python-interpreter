@@ -116,12 +116,20 @@ AstNode *Parser::parseAssign()
     if (match(TokenType::Assign))
     {
         AstNode *value = parseAssign();
-        if (expr->type != AstNodeType::Name)
+        if (expr->type == AstNodeType::Name)
+        {
+            NameNode *nameNode = static_cast<NameNode *>(expr);
+            return new AssignNode(nameNode->name, value);
+        }
+        else if (expr->type == AstNodeType::Property)
+        {
+            PropertyNode *propNode = static_cast<PropertyNode *>(expr);
+            return new PropertyAssignNode(propNode->object, propNode->property, value);
+        }
+        else
         {
             throw std::runtime_error("Invalid assignment target");
         }
-        NameNode *nameNode = static_cast<NameNode *>(expr);
-        return new AssignNode(nameNode->name, value);
     }
     return expr;
 }

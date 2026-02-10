@@ -33,6 +33,7 @@ public:
     PyObject *visitBinaryOpNode(BinaryOpNode *node) override;
     PyObject *visitUnaryOpNode(UnaryOpNode *node) override;
     PyObject *visitAssignNode(AssignNode *node) override;
+    PyObject *visitPropertyAssignNode(PropertyAssignNode *node) override;
 
 private:
     std::unique_ptr<Scope> globalScope;
