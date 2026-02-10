@@ -2,7 +2,6 @@
 #include <iostream>
 #include <cmath>
 #include "pyobject.hpp"
-#include "PyFunction.h"
 
 Interpreter::Interpreter()
 {
@@ -57,9 +56,7 @@ PyObject *Interpreter::visitContinueNode(ContinueNode *node)
 
 PyObject *Interpreter::visitReturnNode(ReturnNode *node)
 {
-    std::shared_ptr<PyObject> value = node->value
-                                          ? std::shared_ptr<PyObject>(node->value->accept(this))
-                                          : std::make_shared<PyNone>();
+    std::shared_ptr<PyObject> value = node->value ? std::shared_ptr<PyObject>(node->value->accept(this)) : std::make_shared<PyNone>();
     throw ReturnException(value);
 }
 
@@ -105,9 +102,6 @@ PyObject *Interpreter::visitWhileNode(WhileNode *node)
 
 PyObject *Interpreter::visitFunctionNode(FunctionNode *node)
 {
-    // Create a PyFunction - body points to the AST node (not owned)
-    // closure points to current scope (not owned)
-    // We use empty deleters to prevent double-free
     std::shared_ptr<AstNode> bodyPtr(node->body, [](AstNode *) {});
     std::shared_ptr<Scope> closurePtr(currentScope, [](Scope *) {});
 
@@ -144,7 +138,7 @@ PyObject *Interpreter::visitCallNode(CallNode *node)
         }
         catch (const ReturnException &ex)
         {
-            // Copy the value before scope cleanup
+            // Handle different return types
             if (auto intVal = dynamic_cast<PyInt *>(ex.value.get()))
                 result = new PyInt(intVal->value);
             else if (auto floatVal = dynamic_cast<PyFloat *>(ex.value.get()))
@@ -155,6 +149,8 @@ PyObject *Interpreter::visitCallNode(CallNode *node)
                 result = new PyBool(boolVal->value);
             else if (dynamic_cast<PyNone *>(ex.value.get()))
                 result = new PyNone();
+            else if (auto inst = dynamic_cast<PyInstance *>(ex.value.get()))
+                result = inst; // Return the instance directly
             else
                 result = ex.value.get();
         }
@@ -170,7 +166,7 @@ PyObject *Interpreter::visitCallNode(CallNode *node)
         std::shared_ptr<PyObject> initObj;
         try
         {
-            initObj = klass->get("init");
+            initObj = klass->get("__init__");
         }
         catch (const std::runtime_error &)
         {
@@ -216,53 +212,58 @@ PyObject *Interpreter::visitCallNode(CallNode *node)
 PyObject *Interpreter::visitPropertyNode(PropertyNode *node)
 {
     PyObject *obj = node->object->accept(this);
+
     if (auto instance = dynamic_cast<PyInstance *>(obj))
     {
         std::shared_ptr<PyObject> value = instance->get(node->property);
+
+        // If it's a method (PyFunction), we need to bind self to it
+        if (auto func = dynamic_cast<PyFunction *>(value.get()))
+        {
+            // Create a bound method by wrapping the call
+            // For now, we'll just return the function and handle binding in CallNode
+            // This is a simplified approach
+            return value.get();
+        }
+
         return value ? value.get() : static_cast<PyObject *>(new PyNone());
     }
+
     if (auto klass = dynamic_cast<PyClass *>(obj))
     {
         std::shared_ptr<PyObject> value = klass->get(node->property);
         return value ? value.get() : static_cast<PyObject *>(new PyNone());
     }
+
     return new PyNone();
 }
 
 PyObject *Interpreter::visitClassNode(ClassNode *node)
 {
-    // Save current scope
     Scope *previous = currentScope;
-
-    // Create a new class scope (DO NOT use unique_ptr here)
     Scope *classScope = new Scope(previous);
     currentScope = classScope;
 
-    // Execute class body inside class scope
     node->body->accept(this);
 
-    // Restore scope
     currentScope = previous;
 
-    // Create class
     PyClass *klass = new PyClass(node->name);
 
-    // Collect methods from class scope
     for (const auto &pair : classScope->getVariables())
     {
-        PyFunction *func = dynamic_cast<PyFunction *>(pair.second);
-        if (func)
+        if (auto func = dynamic_cast<PyFunction *>(pair.second))
         {
-            klass->set(pair.first, func);
+            klass->set(pair.first, std::shared_ptr<PyObject>(func));
         }
         else
         {
-            klass->set(pair.first, pair.second);
+            klass->set(pair.first, std::shared_ptr<PyObject>(pair.second));
         }
     }
 
-    // Define class in outer scope
     currentScope->define(node->name, klass);
+    delete classScope;
 
     return klass;
 }
@@ -324,6 +325,7 @@ PyObject *Interpreter::visitBinaryOpNode(BinaryOpNode *node)
         return false;
     };
 
+    // Handle logical operators first (short-circuit)
     switch (node->op.type)
     {
     case TokenType::And:
@@ -346,6 +348,98 @@ PyObject *Interpreter::visitBinaryOpNode(BinaryOpNode *node)
 
     PyObject *right = node->right->accept(this);
 
+    // Check for magic methods on instances
+    if (auto leftInst = dynamic_cast<PyInstance *>(left))
+    {
+        std::string magicMethod;
+
+        switch (node->op.type)
+        {
+        case TokenType::Plus:
+            magicMethod = "__add__";
+            break;
+        case TokenType::Minus:
+            magicMethod = "__sub__";
+            break;
+        case TokenType::Star:
+            magicMethod = "__mul__";
+            break;
+        case TokenType::Slash:
+            magicMethod = "__truediv__";
+            break;
+        case TokenType::LessEqual:
+            magicMethod = "__le__";
+            break;
+        case TokenType::Less:
+            magicMethod = "__lt__";
+            break;
+        case TokenType::GreaterEqual:
+            magicMethod = "__ge__";
+            break;
+        case TokenType::Greater:
+            magicMethod = "__gt__";
+            break;
+        case TokenType::EqualEqual:
+            magicMethod = "__eq__";
+            break;
+        case TokenType::BangEqual:
+            magicMethod = "__ne__";
+            break;
+        default:
+            break;
+        }
+
+        if (!magicMethod.empty())
+        {
+            try
+            {
+                std::shared_ptr<PyObject> method = leftInst->get(magicMethod);
+                if (auto func = dynamic_cast<PyFunction *>(method.get()))
+                {
+                    // Call the magic method with self and other
+                    Scope *previous = currentScope;
+                    Scope *newCallScope = new Scope(func->closure.get());
+                    currentScope = newCallScope;
+
+                    // Bind self and other
+                    if (func->params.size() >= 2)
+                    {
+                        currentScope->define(func->params[0], leftInst);
+                        currentScope->define(func->params[1], right);
+                    }
+
+                    PyObject *result = new PyNone();
+                    try
+                    {
+                        func->body->accept(this);
+                    }
+                    catch (const ReturnException &ex)
+                    {
+                        if (auto intVal = dynamic_cast<PyInt *>(ex.value.get()))
+                            result = new PyInt(intVal->value);
+                        else if (auto floatVal = dynamic_cast<PyFloat *>(ex.value.get()))
+                            result = new PyFloat(floatVal->value);
+                        else if (auto boolVal = dynamic_cast<PyBool *>(ex.value.get()))
+                            result = new PyBool(boolVal->value);
+                        else if (auto inst = dynamic_cast<PyInstance *>(ex.value.get()))
+                            result = inst;
+                        else
+                            result = ex.value.get();
+                    }
+
+                    currentScope = previous;
+                    delete newCallScope;
+                    return result;
+                }
+            }
+            catch (const std::runtime_error &)
+            {
+                // Method not found, fall through to default behavior
+            }
+        }
+    }
+
+    // Default arithmetic and comparison operations
     if (node->op.type == TokenType::Plus)
     {
         if (auto l = dynamic_cast<PyStr *>(left))
