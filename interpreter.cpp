@@ -229,18 +229,34 @@ PyObject *Interpreter::visitPropertyNode(PropertyNode *node)
 
 PyObject *Interpreter::visitClassNode(ClassNode *node)
 {
+    // Save current scope
     Scope *previous = currentScope;
-    std::unique_ptr<Scope> classScope = std::make_unique<Scope>(previous);
-    currentScope = classScope.get();
+
+    // Create a new class scope (DO NOT use unique_ptr here)
+    Scope *classScope = new Scope(previous);
+    currentScope = classScope;
+
+    // Execute class body inside class scope
     node->body->accept(this);
+
+    // Restore scope
     currentScope = previous;
 
+    // Create class
     PyClass *klass = new PyClass(node->name);
+
+    // Collect methods from class scope
     for (const auto &pair : classScope->getVariables())
     {
-        klass->set(pair.first, pair.second);
+        if (dynamic_cast<PyFunction *>(pair.second))
+        {
+            klass->set(pair.first, pair.second);
+        }
     }
+
+    // Define class in outer scope
     currentScope->define(node->name, klass);
+
     return klass;
 }
 
