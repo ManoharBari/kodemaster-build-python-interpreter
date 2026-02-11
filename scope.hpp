@@ -12,7 +12,11 @@ public:
 
     void define(const std::string &name, PyObject *value)
     {
-        variables[name] = std::shared_ptr<PyObject>(value);
+        // Create non-owning shared_ptr to avoid double-delete
+        // The caller is responsible for memory management
+        variables[name] = std::shared_ptr<PyObject>(value, [](PyObject *) {
+            // Empty deleter - don't actually delete
+        });
     }
 
     PyObject *get(const std::string &name)
@@ -32,7 +36,7 @@ public:
     {
         if (variables.find(name) != variables.end())
         {
-            variables[name] = std::shared_ptr<PyObject>(value);
+            variables[name] = std::shared_ptr<PyObject>(value, [](PyObject *) {});
             return;
         }
         if (enclosing != nullptr)

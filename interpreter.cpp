@@ -167,7 +167,7 @@ PyObject *Interpreter::visitCallNode(CallNode *node)
         // Create shared_ptr to the class (non-owning)
         std::shared_ptr<PyClass> klassPtr(klass, [](PyClass *) {});
         PyInstance *instance = new PyInstance(klassPtr);
-
+        
         std::shared_ptr<PyObject> initObj;
         try
         {
@@ -217,24 +217,24 @@ PyObject *Interpreter::visitCallNode(CallNode *node)
 PyObject *Interpreter::visitPropertyNode(PropertyNode *node)
 {
     PyObject *obj = node->object->accept(this);
-
+    
     if (auto instance = dynamic_cast<PyInstance *>(obj))
     {
         std::shared_ptr<PyObject> value = instance->get(node->property);
-
+        
         // If it's a method (PyFunction), we need to bind self to it
         // For now, we'll just return the function and handle binding in CallNode
         // This is a simplified approach
-
+        
         return value ? value.get() : static_cast<PyObject *>(new PyNone());
     }
-
+    
     if (auto klass = dynamic_cast<PyClass *>(obj))
     {
         std::shared_ptr<PyObject> value = klass->get(node->property);
         return value ? value.get() : static_cast<PyObject *>(new PyNone());
     }
-
+    
     return new PyNone();
 }
 
@@ -354,7 +354,7 @@ PyObject *Interpreter::visitBinaryOpNode(BinaryOpNode *node)
     if (auto leftInst = dynamic_cast<PyInstance *>(left))
     {
         std::string magicMethod;
-
+        
         switch (node->op.type)
         {
         case TokenType::Plus:
@@ -635,7 +635,9 @@ PyObject *Interpreter::visitPropertyAssignNode(PropertyAssignNode *node)
 
     if (auto instance = dynamic_cast<PyInstance *>(obj))
     {
-        instance->set(node->property, std::shared_ptr<PyObject>(value));
+        // Use non-owning shared_ptr to avoid double-delete
+        std::shared_ptr<PyObject> valuePtr(value, [](PyObject*){});
+        instance->set(node->property, valuePtr);
         return value;
     }
 
