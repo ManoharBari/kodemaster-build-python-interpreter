@@ -39,24 +39,26 @@ PyObject *Interpreter::visitPrintNode(PrintNode *node)
     return new PyNone();
 }
 
-PyObject *Interpreter::visitPassNode(PassNode *node)
+PyObject *Interpreter::visitPassNode(PassNode *)
 {
     return nullptr;
 }
 
-PyObject *Interpreter::visitBreakNode(BreakNode *node)
+PyObject *Interpreter::visitBreakNode(BreakNode *)
 {
     throw BreakException();
 }
 
-PyObject *Interpreter::visitContinueNode(ContinueNode *node)
+PyObject *Interpreter::visitContinueNode(ContinueNode *)
 {
     throw ContinueException();
 }
 
 PyObject *Interpreter::visitReturnNode(ReturnNode *node)
 {
-    std::shared_ptr<PyObject> value = node->value ? std::shared_ptr<PyObject>(node->value->accept(this)) : std::make_shared<PyNone>();
+    std::shared_ptr<PyObject> value = node->value
+                                          ? std::shared_ptr<PyObject>(node->value->accept(this))
+                                          : std::make_shared<PyNone>();
     throw ReturnException(value);
 }
 
@@ -162,7 +164,10 @@ PyObject *Interpreter::visitCallNode(CallNode *node)
 
     if (auto klass = dynamic_cast<PyClass *>(callee))
     {
-        PyInstance *instance = new PyInstance(klass);
+        // Create shared_ptr to the class (non-owning)
+        std::shared_ptr<PyClass> klassPtr(klass, [](PyClass *) {});
+        PyInstance *instance = new PyInstance(klassPtr);
+
         std::shared_ptr<PyObject> initObj;
         try
         {
@@ -218,13 +223,8 @@ PyObject *Interpreter::visitPropertyNode(PropertyNode *node)
         std::shared_ptr<PyObject> value = instance->get(node->property);
 
         // If it's a method (PyFunction), we need to bind self to it
-        if (auto func = dynamic_cast<PyFunction *>(value.get()))
-        {
-            // Create a bound method by wrapping the call
-            // For now, we'll just return the function and handle binding in CallNode
-            // This is a simplified approach
-            return value.get();
-        }
+        // For now, we'll just return the function and handle binding in CallNode
+        // This is a simplified approach
 
         return value ? value.get() : static_cast<PyObject *>(new PyNone());
     }
@@ -250,15 +250,17 @@ PyObject *Interpreter::visitClassNode(ClassNode *node)
 
     PyClass *klass = new PyClass(node->name);
 
+    // Get variables from class scope
     for (const auto &pair : classScope->getVariables())
     {
-        if (auto func = dynamic_cast<PyFunction *>(pair.second))
+        // pair.second is std::shared_ptr<PyObject>
+        if (auto func = dynamic_cast<PyFunction *>(pair.second.get()))
         {
-            klass->set(pair.first, std::shared_ptr<PyObject>(func));
+            klass->set(pair.first, pair.second);
         }
         else
         {
-            klass->set(pair.first, std::shared_ptr<PyObject>(pair.second));
+            klass->set(pair.first, pair.second);
         }
     }
 
@@ -288,7 +290,7 @@ PyObject *Interpreter::visitBooleanNode(BooleanNode *node)
     return new PyBool(node->value.type == TokenType::True);
 }
 
-PyObject *Interpreter::visitNullNode(NullNode *node)
+PyObject *Interpreter::visitNullNode(NullNode *)
 {
     return new PyNone();
 }

@@ -109,6 +109,9 @@ public:
     std::map<std::string, std::shared_ptr<PyObject>> methods;
 
     PyClass(const std::string &name) : name(name) {}
+    
+    // Copy constructor - needed for make_shared<PyClass>(*klass)
+    PyClass(const PyClass& other) : name(other.name), methods(other.methods) {}
 
     std::shared_ptr<PyObject> get(const std::string &name)
     {
@@ -137,10 +140,10 @@ public:
 class PyInstance : public PyObject
 {
 public:
-    PyClass *klass;
+    std::shared_ptr<PyClass> klass;  // Changed from raw pointer
     std::map<std::string, std::shared_ptr<PyObject>> attributes;
 
-    PyInstance(PyClass *klass) : klass(klass) {}
+    PyInstance(std::shared_ptr<PyClass> klass) : klass(klass) {}
 
     std::shared_ptr<PyObject> get(const std::string &name)
     {
