@@ -48,6 +48,14 @@ Token Parser::consume(TokenType type)
     throw std::runtime_error("Expected token type " + std::to_string(static_cast<int>(type)));
 }
 
+void Parser::skipNewlines()
+{
+    while (match(TokenType::Newline))
+    {
+        // Skip all newlines
+    }
+}
+
 ProgramNode *Parser::parseProgram()
 {
     std::vector<AstNode *> statements = parseStmtList();
@@ -115,6 +123,7 @@ AstNode *Parser::parseAssign()
     AstNode *expr = parseOr();
     if (match(TokenType::Assign))
     {
+        skipNewlines(); // Skip newlines after =
         AstNode *value = parseAssign();
         if (expr->type == AstNodeType::Name)
         {
@@ -140,6 +149,7 @@ AstNode *Parser::parseOr()
     while (match(TokenType::Or))
     {
         Token op = previous();
+        skipNewlines(); // Skip newlines after or
         left = new BinaryOpNode(left, op, parseAnd());
     }
     return left;
@@ -151,6 +161,7 @@ AstNode *Parser::parseAnd()
     while (match(TokenType::And))
     {
         Token op = previous();
+        skipNewlines(); // Skip newlines after and
         left = new BinaryOpNode(left, op, parseComparison());
     }
     return left;
@@ -164,6 +175,7 @@ AstNode *Parser::parseComparison()
                   TokenType::Greater, TokenType::GreaterEqual}))
     {
         Token op = previous();
+        skipNewlines(); // Skip newlines after comparison operator
         left = new BinaryOpNode(left, op, parseTerm());
     }
     return left;
@@ -176,6 +188,7 @@ AstNode *Parser::parseTerm()
     while (match({TokenType::Plus, TokenType::Minus}))
     {
         Token op = previous();
+        skipNewlines(); // Skip newlines after + or -
         AstNode *right = parseFactor();
         left = new BinaryOpNode(left, op, right);
     }
@@ -190,6 +203,7 @@ AstNode *Parser::parseFactor()
     while (match({TokenType::Star, TokenType::Slash, TokenType::DoubleSlash, TokenType::Mod}))
     {
         Token op = previous();
+        skipNewlines(); // Skip newlines after * / // %
         AstNode *right = parsePower();
         left = new BinaryOpNode(left, op, right);
     }
@@ -203,6 +217,7 @@ AstNode *Parser::parsePower()
     if (match(TokenType::DoubleStar))
     {
         Token op = previous();
+        skipNewlines(); // Skip newlines after **
         return new BinaryOpNode(left, op, parsePower());
     }
     return left;
@@ -213,6 +228,7 @@ AstNode *Parser::parseUnary()
     if (match({TokenType::Minus, TokenType::Not}))
     {
         Token op = previous();
+        skipNewlines(); // Skip newlines after unary operator
         AstNode *operand = parseUnary();
         return new UnaryOpNode(op, operand);
     }
@@ -222,6 +238,8 @@ AstNode *Parser::parseUnary()
 
 AstNode *Parser::parsePrimary()
 {
+    skipNewlines(); // Skip newlines before primary expression
+
     if (match(TokenType::Int))
         return parseCall(new IntNode(previous()));
     if (match(TokenType::Float))
@@ -283,9 +301,14 @@ AstNode *Parser::parseSuite()
         {
         }
         if (peek().type == TokenType::Dedent)
+        {
+            match(TokenType::Dedent); // Consume the Dedent before breaking
             break;
+        }
         statements.push_back(parseStmt());
-        match(TokenType::Newline);
+        while (match(TokenType::Newline)) // consume trailing newlines
+        {
+        }
     }
     return new BlockNode(statements);
 }
@@ -354,7 +377,10 @@ AstNode *Parser::parseCall(AstNode *callee)
             {
                 args.push_back(parseExpr());
                 while (match(TokenType::Comma))
+                {
+                    skipNewlines(); // Skip newlines after comma
                     args.push_back(parseExpr());
+                }
             }
             consume(TokenType::RightParen);
             callee = new CallNode(callee, args);

@@ -38,4 +38,5 @@ public:
 private:
     std::unique_ptr<Scope> globalScope;
     Scope *currentScope;
+    std::shared_ptr<PyObject> lastReturnValue;  // Keep return values alive
 };

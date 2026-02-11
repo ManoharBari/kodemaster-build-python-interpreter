@@ -114,6 +114,14 @@ PyObject *Interpreter::visitFunctionNode(FunctionNode *node)
 
 PyObject *Interpreter::visitCallNode(CallNode *node)
 {
+    // Check if we're calling a method on an instance
+    PyObject *instance = nullptr;
+    if (auto propNode = dynamic_cast<PropertyNode *>(node->callee))
+    {
+        // This is a method call like obj.method()
+        instance = propNode->object->accept(this);
+    }
+
     PyObject *callee = node->callee->accept(this);
     std::vector<PyObject *> args;
     args.reserve(node->args.size());
@@ -129,7 +137,22 @@ PyObject *Interpreter::visitCallNode(CallNode *node)
         size_t paramCount = func->params.size();
         for (size_t i = 0; i < paramCount; ++i)
         {
-            PyObject *value = (i < args.size()) ? args[i] : new PyNone();
+            PyObject *value = nullptr;
+            if (i == 0 && instance != nullptr)
+            {
+                // This is a method call, pass the instance as self
+                value = instance;
+            }
+            else if (instance != nullptr)
+            {
+                // Adjust index since we already used the first parameter for self
+                value = (i - 1 < args.size()) ? args[i - 1] : new PyNone();
+            }
+            else
+            {
+                // Regular function call
+                value = (i < args.size()) ? args[i] : new PyNone();
+            }
             currentScope->define(func->params[i], value);
         }
 
@@ -140,21 +163,9 @@ PyObject *Interpreter::visitCallNode(CallNode *node)
         }
         catch (const ReturnException &ex)
         {
-            // Handle different return types
-            if (auto intVal = dynamic_cast<PyInt *>(ex.value.get()))
-                result = new PyInt(intVal->value);
-            else if (auto floatVal = dynamic_cast<PyFloat *>(ex.value.get()))
-                result = new PyFloat(floatVal->value);
-            else if (auto strVal = dynamic_cast<PyStr *>(ex.value.get()))
-                result = new PyStr(strVal->value);
-            else if (auto boolVal = dynamic_cast<PyBool *>(ex.value.get()))
-                result = new PyBool(boolVal->value);
-            else if (dynamic_cast<PyNone *>(ex.value.get()))
-                result = new PyNone();
-            else if (auto inst = dynamic_cast<PyInstance *>(ex.value.get()))
-                result = inst; // Return the instance directly
-            else
-                result = ex.value.get();
+            // Keep the return value alive by storing it in lastReturnValue
+            lastReturnValue = ex.value;
+            result = ex.value.get();
         }
 
         currentScope = previous;
